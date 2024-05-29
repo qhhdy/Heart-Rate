@@ -1,0 +1,47 @@
+#include <Ethernet.h>
+#include <EthernetClient.h>
+
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+int heartRatePin = A0;
+int lastHeartRate = 0;
+
+EthernetClient ethClient;
+
+void setup() {
+  Ethernet.begin(mac);
+  delay(1000);
+  connectToWebSocket();
+}
+
+void loop() {
+  int heartRate = readHeartRate();
+  if (heartRate != lastHeartRate) {
+    sendHeartRate(heartRate);
+    lastHeartRate = heartRate;
+  }
+  delay(1000);
+}
+
+void connectToWebSocket() {
+  if (ethClient.connect("192.168.1.177", 8080)) {
+    // 연결 성공
+    Serial.println("Connected to WebSocket server");
+  } else {
+    // 연결 실패
+    Serial.println("Failed to connect to WebSocket server");
+  }
+}
+
+void sendHeartRate(int heartRate) {
+  if (ethClient.connected()) {
+    // 연결된 경우에만 데이터를 전송
+    ethClient.println("Heart Rate: " + String(heartRate));
+  } else {
+    // 연결이 끊긴 경우에는 다시 연결 시도
+    connectToWebSocket();
+  }
+}
+
+int readHeartRate() {
+  return analogRead(heartRatePin);
+}
